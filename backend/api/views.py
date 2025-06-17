@@ -1,8 +1,11 @@
 from django.conf import settings
-from rest_framework import filters, viewsets
-from rest_framework.decorators import action
+from django.db import IntegrityError
+from rest_framework import filters, viewsets, status
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 
@@ -10,7 +13,18 @@ from .constants import (USERS_PAGINATION_PAGE_SIZE)
 from .models import User
 
 from .permissions import IsAdmin
-from .serializers import (AdminUserSerializer, MeUserSerializer)
+from .serializers import (AdminUserSerializer, SignupSerializer,)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    """Logout user с удалением токена."""
+    try:
+        request.user.auth_token.delete()
+    except (AttributeError, Token.DoesNotExist):
+        pass
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UsersPagination(PageNumberPagination):
@@ -27,19 +41,12 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdmin,)
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
-    @action(
-        detail=False,
-        methods=['get', 'patch'],
-        url_path=settings.USER_ME_URL_SEGMENT,
-        permission_classes=[IsAuthenticated],
-        serializer_class=MeUserSerializer
-    )
-    def profile(self, request):
-        if request.method == 'GET':
-            serializer = self.get_serializer(request.user)
-            return Response(serializer.data)
-        serializer = self.get_serializer(
-            request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return SignupSerializer
+        return AdminUserSerializer
