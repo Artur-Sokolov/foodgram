@@ -7,6 +7,7 @@ from .views import (UserViewSet, logout_view)
 
 
 router_v1 = DefaultRouter()
+router_v1.register(r'subscribe',)
 router_v1.register(r'users', UserViewSet, basename='users')
 
 auth_urls = [
