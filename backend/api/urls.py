@@ -3,10 +3,12 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 
 from .views import (logout_view, UserViewSet)
+from recipes.views import (RecipeViewSet)
 
 
 router_v1 = DefaultRouter()
 router_v1.register(r'users', UserViewSet, basename='users')
+router_v1.register(r'recipes', RecipeViewSet, basename='recipes')
 
 auth_urls = [
     path('auth/token/login/', obtain_auth_token, name='login'),
