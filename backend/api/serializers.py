@@ -1,12 +1,13 @@
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .constants import (EMAIL_MAX_LENGTH, USER_MAX_LENGTH)
-from .models import User
-from .validators import validate_username
+from .models import Subscription
 
+User = get_user_model()
 
 class SignupSerializer(serializers.ModelSerializer):
+    """Сериализатор для регистрации пользователя."""
+
     password = serializers.CharField(write_only=True)
 
     class Meta:
@@ -26,28 +27,51 @@ class SignupSerializer(serializers.ModelSerializer):
         return user
 
 
-class TokenSerializer(serializers.Serializer):
-    username = serializers.CharField(
-        max_length=USER_MAX_LENGTH,
-        validators=[validate_username],
-        required=True,
-    )
-    confirmation_code = serializers.CharField(
-        max_length=settings.CONFIRMATION_CODE_LENGTH,
-        min_length=settings.CONFIRMATION_CODE_LENGTH,
-        required=True,
-    )
-
 class AdminUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для управления пользователями администратором."""
 
     class Meta:
         model = User
         fields = (
-            'username', 'email', 'first_name', 'last_name', 'role'
+            'username', 'email', 'first_name', 'last_name', 'role', 'avatar'
         )
 
 
 class MeUserSerializer(AdminUserSerializer):
+    """Сериализатор для получения информации о текущем пользователе."""
 
     class Meta(AdminUserSerializer.Meta):
-        read_only_fields = ('role',)
+        read_only_fields = ('role', 'email', 'username')
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Сериализатор для изменения пароля пользователя."""
+
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для обновления аватара пользователя."""
+
+    class Meta:
+        model = User
+        fields = ('avatar',)
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписок пользователя."""
+
+    is_subscribed = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(
+        source='author.recipes.count', read_only=True
+    )
+
+
+    class Meta:
+        model = Subscription
+        fields = ('id', 'user', 'author', 'is_subscribed', 'recipes_count')
+
+    def get_is_subscribed(self, obj):
+        """Проверка подписки пользователя на автора."""
+        return True

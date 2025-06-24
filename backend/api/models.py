@@ -2,8 +2,7 @@ from django.conf import settings
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from .constants import (MAX_LENGTH_NAME, MAX_LENGTH_SLUG, USER_MAX_LENGTH,
-                       EMAIL_MAX_LENGTH, MIN_SCORE, MAX_SCORE)
+from .constants import ( USER_MAX_LENGTH, EMAIL_MAX_LENGTH)
 from .validators import validate_username
 
 
@@ -14,7 +13,7 @@ class User(AbstractUser):
     MODERATOR = 'moderator'
     ADMIN = 'admin'
 
-    ROLE_CHOISES = [
+    ROLE_CHOIСES = [
         (USER, 'Пользователь'),
         (MODERATOR, 'Модератор'),
         (ADMIN, 'Администратор'),
@@ -29,6 +28,7 @@ class User(AbstractUser):
 
     email = models.EmailField(
         unique=True,
+        max_length=EMAIL_MAX_LENGTH,
         verbose_name='Электронная почта',
     )
 
@@ -42,9 +42,16 @@ class User(AbstractUser):
         verbose_name='Фамилия',
     )
 
+    avatar = models.ImageField(
+        upload_to='users/',
+        blank=True,
+        null=True,
+        verbose_name='Аватар пользователя',
+    )
+
     role = models.CharField(
-        max_length=max(len(role_name) for role_name, _ in ROLE_CHOISES),
-        choices=ROLE_CHOISES,
+        max_length=max(len(role_name) for role_name, _ in ROLE_CHOIСES),
+        choices=ROLE_CHOIСES,
         default=USER,
         verbose_name='Роль',
     )
@@ -55,3 +62,26 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username
+
+
+class Subscription(models.Model):
+    """Модель подписки пользователя на автора."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='follower'
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='followering'
+    )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        unique_together = ('user', 'author')

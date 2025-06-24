@@ -1,13 +1,11 @@
 from django.urls import include, path
-from rest_framework.authtoken.views import obtain_auth_token
 from rest_framework.routers import DefaultRouter
+from rest_framework.authtoken.views import obtain_auth_token
 
-
-from .views import (UserViewSet, logout_view)
+from .views import (logout_view, UserViewSet)
 
 
 router_v1 = DefaultRouter()
-router_v1.register(r'subscribe',)
 router_v1.register(r'users', UserViewSet, basename='users')
 
 auth_urls = [
