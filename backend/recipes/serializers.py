@@ -1,7 +1,10 @@
 from rest_framework import serializers
+from django.db.models import Sum
 from django.contrib.auth import get_user_model
 
-from .models import Tag, Ingredient, Recipe, RecipeIngredient
+from .models import (
+    Tag, Ingredient, Recipe, RecipeIngredient, Favorite, ShoppingCart
+)
 
 User = get_user_model()
 
@@ -115,3 +118,40 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 amount=ing['amount']
             )
         return super().update(instance, validated_data)
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    """Добавление/удаление из избранного."""
+
+    class Meta:
+        model = Favorite
+        fields = ('recipe',)
+
+
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    """Добавление/удаление в список покупок."""
+
+    class Meta:
+        model = ShoppingCart
+        fields = ('recipe',)
+
+
+class DownloadShoppingCartSerializer(serializers.Serializer):
+    """Сериализатор для скачивания списка покупок."""
+
+    ingredients = serializers.SerializerMethodField()
+
+    def get_ingredients(self, obj):
+        qs = RecipeIngredient.objects.filter(
+            recipe__in=obj.shopping_cart.values_list('recipe', flat=True)
+        ).values(
+            'ingredient__name', 'ingredient__measurement_unit'
+        ).annotate(amount=Sum('amount'))
+        return [
+            {
+                'name': item['ingredient__name'],
+                'unit': item['ingredient__measurement_unit'],
+                'amount': item['amount'],
+            }
+            for item in qs
+        ]

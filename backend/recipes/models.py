@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.db import models
 
-from api.constants import ( USER_MAX_LENGTH, MAX_LENGTH_SLUG, MAX_LENGTH_NAME)
+from api.constants import (MAX_LENGTH_SLUG, MAX_LENGTH_NAME)
 
+User = settings.AUTH_USER_MODEL
 
 
 class Tag(models.Model):
@@ -119,3 +120,41 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f'{self.amount} x {self.ingredient.name} in {self.recipe.name}'
+
+
+class Favorite(models.Model):
+    """Избранное."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='favorites'
+    )
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name='favorited_by'
+    )
+
+    class Meta:
+        unique_together = ('user', 'recipe')
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+
+    def __str__(self):
+        return f'{self.user} ❤️ {self.recipe}'
+
+
+class ShoppingCart(models.Model):
+    """Корзина."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='shopping_cart'
+    )
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name='in_shopping_carts'
+    )
+
+    class Meta:
+        unique_together = ('user', 'recipe')
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+
+    def __str__(self):
+        return f'{self.user} 🛒 {self.recipe}'
