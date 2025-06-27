@@ -4,21 +4,41 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 
 from .constants import (USERS_PAGINATION_PAGE_SIZE)
 from .models import Subscription
 from .serializers import (
     SignupSerializer, AdminUserSerializer, MeUserSerializer,
-    ChangePasswordSerializer, AvatarSerializer, SubscriptionSerializer
+    ChangePasswordSerializer, AvatarSerializer, SubscriptionSerializer,
+    UsernameAuthTokenSerializer
 )
 
 User = get_user_model()
 
 
 class CustomAuthToken(ObtainAuthToken):
-    """Вход по email/паролю, возвращает токен."""
-    pass
+    """Вход по username/паролю, возвращает токен."""
+
+    serializer_class = UsernameAuthTokenSerializer
+
+    def post(self, request, *args, **kwargs):
+        # проверяем входящие данные
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        # достаём залогиненного пользователя
+        user = serializer.validated_data['user']
+
+        # получаем или создаём токен
+        token, _ = Token.objects.get_or_create(user=user)
+
+        # возвращаем ключ
+        return Response({'token': token.key})
 
 
 @api_view(['POST'])

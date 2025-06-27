@@ -1,9 +1,12 @@
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from .models import Subscription
 
 User = get_user_model()
+
 
 class SignupSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации пользователя."""
@@ -75,3 +78,42 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         """Проверка подписки пользователя на автора."""
         return True
+
+
+class UsernameAuthTokenSerializer(serializers.Serializer):
+    """Логин по username / password."""
+
+    username = serializers.CharField(
+        label=_('Username'),
+        write_only=True,
+    )
+    password = serializers.CharField(
+        label=_('Password'),
+        style={'input_type': 'password'},
+        trim_whitespace=False,
+        write_only=True,
+    )
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        if not username or not password:
+            raise serializers.ValidationError(
+                _('Поля "username" и "password" обязательны.'),
+                code='authorization'
+            )
+
+        user = authenticate(
+            request=self.context.get('request'),
+            username=username,
+            password=password
+        )
+        if not user:
+            raise serializers.ValidationError(
+                _('Неверное имя пользователя или пароль.'),
+                code='authorization'
+            )
+
+        attrs['user'] = user
+        return attrs

@@ -1,3 +1,5 @@
+version: '3.9'
+
 volumes:
   pg_data:
   static:
@@ -12,19 +14,17 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    build: ./backend/
     restart: always
     env_file: .env
-    depends_on:
-      - foodgram
     volumes:
-      - static:/app/collected_static
-      - media:/app/media
+      - static:/app/backend_static/
+      - media:/app/backend_media/
 
   frontend:
-    build: ./frontend
+    build: ./frontend/
     env_file: .env
-    command: cp -r /app/build/. /frontend_static
+    command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static
 
@@ -37,5 +37,5 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - static:/static
-      - media:/media
+      - static:/static/
+      - media:/media/

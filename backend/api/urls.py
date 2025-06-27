@@ -1,8 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from rest_framework.authtoken.views import obtain_auth_token
 
-from .views import (logout_view, UserViewSet)
+from .views import (CustomAuthToken, logout_view, UserViewSet)
 from recipes.views import (RecipeViewSet)
 
 
@@ -11,7 +10,7 @@ router_v1.register(r'users', UserViewSet, basename='users')
 router_v1.register(r'recipes', RecipeViewSet, basename='recipes')
 
 auth_urls = [
-    path('auth/token/login/', obtain_auth_token, name='login'),
+    path('auth/token/login/', CustomAuthToken.as_view(), name='login'),
     path('auth/token/logout/', logout_view, name='logout'),
 ]
 
