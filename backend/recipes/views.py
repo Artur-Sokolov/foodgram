@@ -1,4 +1,5 @@
 import base64, uuid
+from rest_framework.reverse import reverse
 from django.core.files.base import ContentFile
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, viewsets, permissions, status
@@ -80,7 +81,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = request.data.copy()
 
-        # === Base64 → ContentFile (как у вас) ===
         image = data.get('image')
         if isinstance(image, str) and image.startswith('data:image'):
             header, b64 = image.split(';base64,', 1)
@@ -93,7 +93,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             data['image'] = ContentFile(decoded, name=f'{uuid.uuid4()}.{ext}')
-        # ========================================
 
         serializer = RecipeCreateSerializer(
             instance, data=data, partial=partial, context={'request': request}
@@ -101,7 +100,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         recipe = serializer.save()
 
-        # Отдаём уже “read” представление
         read = RecipeReadSerializer(recipe, context={'request': request})
         return Response(read.data)
 
@@ -152,3 +150,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
         return response
 
+    @action(
+        detail=True,
+        methods=['get'],
+        url_path='get-link',
+        permission_classes=[AllowAny]
+    )
+    def get_link(self, request, pk=None):
+        url = reverse(
+            'recipes-detail',
+            kwargs={'pk': pk},
+            request=request
+        )
+        return Response({'link': url})
