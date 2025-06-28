@@ -80,11 +80,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return True
 
 
-class UsernameAuthTokenSerializer(serializers.Serializer):
-    """Логин по username / password."""
+class EmailAuthTokenSerializer(serializers.Serializer):
+    """Логин по email/password."""
 
-    username = serializers.CharField(
-        label=_('Username'),
+    email = serializers.EmailField(
+        label=_('Email'),
         write_only=True,
     )
     password = serializers.CharField(
@@ -95,23 +95,23 @@ class UsernameAuthTokenSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        username = attrs.get('username')
+        email = attrs.get('email')
         password = attrs.get('password')
 
-        if not username or not password:
+        if not email or not password:
             raise serializers.ValidationError(
-                _('Поля "username" и "password" обязательны.'),
+                _('Поля "email" и "password" обязательны.'),
                 code='authorization'
             )
 
         user = authenticate(
             request=self.context.get('request'),
-            username=username,
+            username=email,
             password=password
         )
         if not user:
             raise serializers.ValidationError(
-                _('Неверное имя пользователя или пароль.'),
+                _('Неверный e-mail или пароль.'),
                 code='authorization'
             )
 

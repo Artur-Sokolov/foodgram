@@ -1,17 +1,42 @@
+import base64, uuid
+from django.core.files.base import ContentFile
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.http import HttpResponse
 
 from .filters import RecipeFilter
 from .pagination import RecipePagination
 from .permissions import IsAuthorOrReadOnly
-from .models import Recipe, Favorite, ShoppingCart
+from .models import Recipe, Favorite, Ingredient, ShoppingCart, Tag
 from .serializers import (RecipeCreateSerializer, RecipeReadSerializer,
-                          DownloadShoppingCartSerializer,
+                          DownloadShoppingCartSerializer, TagSerializer,
+                          IngredientSerializer
 )
+
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    """Список и просмотре тегов."""
+
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'slug'
+    pagination_class = None
+
+
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
+    """Спислк и просмотр рецептов."""
+
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['^name']
+    search_param = 'name'
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -21,7 +46,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         IsAuthorOrReadOnly
     ]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filter_class = RecipeFilter
+    filterset_class = RecipeFilter
 
     pagination_class = RecipePagination
 
@@ -30,8 +55,55 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeCreateSerializer
         return RecipeReadSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        image = data.get('image')
+
+        if isinstance(image, str) and image.startswith('data:image'):
+            header, b64 = image.split(';base64', 1)
+            ext = header.split('/')[-1]
+            try:
+                decoded = base64.b64decode(b64)
+            except (TypeError, ValueError):
+                return Response({'image': 'Некорректный base64.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            fname = f'{uuid.uuid4()}.{ext}'
+            data['image'] = ContentFile(decoded, name=fname)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        read_serializer = RecipeReadSerializer(
+            serializer.save(), context={'request': request})
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        data = request.data.copy()
+
+        # === Base64 → ContentFile (как у вас) ===
+        image = data.get('image')
+        if isinstance(image, str) and image.startswith('data:image'):
+            header, b64 = image.split(';base64,', 1)
+            ext = header.split('/')[-1]
+            try:
+                decoded = base64.b64decode(b64)
+            except (TypeError, ValueError):
+                return Response(
+                    {'image': 'Некорректный base64.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            data['image'] = ContentFile(decoded, name=f'{uuid.uuid4()}.{ext}')
+        # ========================================
+
+        serializer = RecipeCreateSerializer(
+            instance, data=data, partial=partial, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        recipe = serializer.save()
+
+        # Отдаём уже “read” представление
+        read = RecipeReadSerializer(recipe, context={'request': request})
+        return Response(read.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
@@ -79,3 +151,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
         response = HttpResponse(content, content_type='text/plain')
         response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
         return response
+

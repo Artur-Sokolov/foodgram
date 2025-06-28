@@ -65,14 +65,15 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания и обновления рецептов."""
 
     tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(), many=True
+        queryset=Tag.objects.all(), many=True, required=False,
     )
     ingredients = serializers.ListField(
         child=serializers.DictField(
             child=serializers.IntegerField(),
+            required=False,
         )
     )
-    image = serializers.ImageField()
+    image = serializers.ImageField(required=False)
 
     class Meta:
         model = Recipe
@@ -108,15 +109,19 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        instance.tags.set(validated_data.pop('tags'))
-        ingredients_data = validated_data.pop('ingredients')
-        RecipeIngredient.objects.filter(recipe=instance).delete()
-        for ing in ingredients_data:
-            RecipeIngredient.objects.create(
-                recipe=instance,
-                ingredient_id=ing['id'],
-                amount=ing['amount']
-            )
+        if 'tags' in validated_data:
+            tags = validated_data.pop('tags')
+            instance.tags.set(tags)
+
+        if 'ingredients' in validated_data:
+            ingredients_data = validated_data.pop('ingredients')
+            RecipeIngredient.objects.filter(recipe=instance).delete()
+            for ingredients in ingredients_data:
+                RecipeIngredient.objects.create(
+                    recipe=instance,
+                    ingredient_id=ingredients['id'],
+                    amount=ingredients['amount']
+                )
         return super().update(instance, validated_data)
 
 

@@ -1,23 +1,11 @@
-from django_filters.rest_framework import (
-    FilterSet, AllValuesMultipleFilter, NumberFilter, BooleanFilter
-)
+from django_filters import rest_framework as filters
+from django_filters.rest_framework import CharFilter, NumberFilter, BooleanFilter
 
 from .models import Recipe
 
 
-class RecipeFilter(FilterSet):
-    """
-    Фильтр для модели Recipe.
-
-    Параметры фильтрации:
-      1. tags: фильтрация по slug тегов (можно несколько значений)
-      2. author: фильтрация по ID автора
-      3. is_favorited: булев флаг, если True —
-      только избранные текущего пользователя
-      4. is_in_shopping_cart: булев флаг, если True —
-      только рецепты из списка покупок текущего пользователя
-    """
-    tags = AllValuesMultipleFilter(field_name='tags__slug')
+class RecipeFilter(filters.FilterSet):
+    tags = CharFilter(method='filter_tags')
     author = NumberFilter(field_name='author__id')
     is_favorited = BooleanFilter(method='filter_favorited')
     is_in_shopping_cart = BooleanFilter(method='filter_shopping_cart')
@@ -25,6 +13,13 @@ class RecipeFilter(FilterSet):
     class Meta:
         model = Recipe
         fields = ['tags', 'author', 'is_favorited', 'is_in_shopping_cart']
+
+    def filter_tags(self, queryset, name, value):
+        # getlist вернёт все ?tags=…&tags=…
+        slugs = self.request.query_params.getlist('tags')
+        if not slugs:
+            return queryset
+        return queryset.filter(tags__slug__in=slugs).distinct()
 
     def filter_favorited(self, queryset, name, value):
         user = self.request.user
@@ -35,5 +30,5 @@ class RecipeFilter(FilterSet):
     def filter_shopping_cart(self, queryset, name, value):
         user = self.request.user
         if value and user.is_authenticated:
-            return queryset.filter(in_shopping_cart__user=user)
+            return queryset.filter(in_shopping_carts__user=user)
         return queryset
