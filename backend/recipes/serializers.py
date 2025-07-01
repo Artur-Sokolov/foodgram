@@ -1,11 +1,11 @@
-from rest_framework import serializers
-from django.db.models import Sum
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from rest_framework import serializers
 
-from .models import (
-    Tag, Ingredient, Recipe, RecipeIngredient, Favorite, ShoppingCart
-)
 from api.serializers import UserReadSerializer
+
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag)
 
 User = get_user_model()
 

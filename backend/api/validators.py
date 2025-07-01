@@ -1,8 +1,10 @@
 import re
-#from datetime import date
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+
+#from datetime import date
+
 
 
 def validate_username(username):

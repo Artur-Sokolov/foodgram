@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from api.constants import (MAX_LENGTH_SLUG, MAX_LENGTH_NAME)
+from api.constants import MAX_LENGTH_NAME, MAX_LENGTH_SLUG
 
 User = settings.AUTH_USER_MODEL
 

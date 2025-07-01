@@ -1,8 +1,8 @@
 from django.conf import settings
-
-from django.db import models
 from django.contrib.auth.models import AbstractUser
-from .constants import ( USER_MAX_LENGTH, EMAIL_MAX_LENGTH)
+from django.db import models
+
+from .constants import EMAIL_MAX_LENGTH, USER_MAX_LENGTH
 from .validators import validate_username
 
 

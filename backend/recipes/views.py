@@ -1,21 +1,22 @@
-import base64, uuid
-from rest_framework.reverse import reverse
+import base64
+import uuid
+
 from django.core.files.base import ContentFile
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, viewsets, permissions, status
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
 from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
 
 from .filters import RecipeFilter
+from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .pagination import RecipePagination
 from .permissions import IsAuthorOrReadOnly
-from .models import Recipe, Favorite, Ingredient, ShoppingCart, Tag
-from .serializers import (RecipeCreateSerializer, RecipeReadSerializer,
-                          DownloadShoppingCartSerializer, TagSerializer,
-                          IngredientSerializer
-)
+from .serializers import (DownloadShoppingCartSerializer, IngredientSerializer,
+                          RecipeCreateSerializer, RecipeReadSerializer,
+                          TagSerializer)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

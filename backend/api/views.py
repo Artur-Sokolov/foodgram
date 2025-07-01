@@ -1,24 +1,24 @@
-import base64, uuid
-from django.core.files.base import ContentFile
+import base64
+import uuid
+
 from django.contrib.auth import get_user_model
-from rest_framework import filters, viewsets, status
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
+from django.core.files.base import ContentFile
+from rest_framework import filters, status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from .constants import (USERS_PAGINATION_PAGE_SIZE, USER_ME_URL_SEGMENT)
-from .models import User, Subscription
+from .constants import USER_ME_URL_SEGMENT, USERS_PAGINATION_PAGE_SIZE
+from .models import Subscription, User
 from .permissions import IsAdmin
-from .serializers import (
-    SignupSerializer, AdminUserSerializer, MeUserSerializer,
-    ChangePasswordSerializer, AvatarSerializer, SubscriptionSerializer,
-    EmailAuthTokenSerializer, UserReadSerializer, SubscriptionDetailSerializer
-)
-
+from .serializers import (AdminUserSerializer, AvatarSerializer,
+                          ChangePasswordSerializer, EmailAuthTokenSerializer,
+                          MeUserSerializer, SignupSerializer,
+                          SubscriptionDetailSerializer, UserReadSerializer)
 
 User = get_user_model()
 
