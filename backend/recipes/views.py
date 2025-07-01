@@ -124,18 +124,39 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
-        """POST /recipes/{id}/favorite/"""
-
+        """POST добавить рецепт в избранное."""
         recipe = self.get_object()
-        Favorite.objects.get_or_create(user=request.user, recipe=recipe)
-        return Response(status=status.HTTP_201_CREATED)
+        fav, created = Favorite.objects.get_or_create(
+            user=request.user,
+            recipe=recipe
+        )
+        if not created:
+            return Response(
+                {'detail': 'Рецепт уже в избранном'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        data = {
+            'id': recipe.id,
+            'name': recipe.name,
+            'image': request.build_absolute_uri(recipe.image.url),
+            'cooking_time': recipe.cooking_time
+        }
+        return Response(data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def unfavorite(self, request, pk=None):
-        """DELETE /recipes/{id}/favorite/"""
-
+        """DELETE удалить рецепт из избранного."""
+        
         recipe = self.get_object()
-        Favorite.objects.filter(user=request.user, recipe=recipe).delete()
+        deleted, _ = Favorite.objects.filter(
+            user=request.user,
+            recipe=recipe
+        ).delete()
+        if deleted == 0:
+            return Response(
+                {'detail': 'Рецепта нет в избранном'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])

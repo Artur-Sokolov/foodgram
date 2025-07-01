@@ -184,3 +184,18 @@ class DownloadShoppingCartSerializer(serializers.Serializer):
             }
             for item in qs
         ]
+
+
+class RecipeMinifiedSerializer(serializers.ModelSerializer):
+    """Мини-сериализатор рецепта для списка в выдаче подписок."""
+
+    image = serializers.ImageField(read_only=True)
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time',
+        )

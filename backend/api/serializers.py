@@ -80,6 +80,55 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return True
 
 
+class SubscriptionDetailSerializer(serializers.ModelSerializer):
+    """Сериализатор для списка моих подписок с рецептами."""
+
+    email = serializers.EmailField(read_only=True)
+    username = serializers.CharField(read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    last_name = serializers.CharField(read_only=True)
+    avatar = serializers.ImageField(read_only=True)
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(
+        source='recipes.count', read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count',
+            'avatar',
+        )
+
+    def get_is_subscribed(self, author):
+        request = self.context['request']
+        return Subscription.objects.filter(
+            user=request.user, author=author
+        ).exists()
+
+    def get_recipes(self, author):
+        from recipes.serializers import RecipeMinifiedSerializer
+
+        request = self.context['request']
+        limit = request.query_params.get('recipes_limit')
+        qs = author.recipes.all().order_by('-pub_date')
+        try:
+            limit = int(limit) if limit is not None else None
+        except ValueError:
+            limit = None
+        if limit:
+            qs = qs[:limit]
+        return RecipeMinifiedSerializer(
+            qs, many=True, context=self.context).data
+
+
 class EmailAuthTokenSerializer(serializers.Serializer):
     """Логин по email/password."""
 

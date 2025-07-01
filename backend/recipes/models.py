@@ -137,9 +137,6 @@ class Favorite(models.Model):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
 
-    def __str__(self):
-        return f'{self.user} ❤️ {self.recipe}'
-
 
 class ShoppingCart(models.Model):
     """Корзина."""
@@ -155,6 +152,3 @@ class ShoppingCart(models.Model):
         unique_together = ('user', 'recipe')
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
-
-    def __str__(self):
-        return f'{self.user} 🛒 {self.recipe}'

@@ -16,7 +16,7 @@ from .permissions import IsAdmin
 from .serializers import (
     SignupSerializer, AdminUserSerializer, MeUserSerializer,
     ChangePasswordSerializer, AvatarSerializer, SubscriptionSerializer,
-    EmailAuthTokenSerializer, UserReadSerializer
+    EmailAuthTokenSerializer, UserReadSerializer, SubscriptionDetailSerializer
 )
 
 
@@ -113,12 +113,12 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return SignupSerializer
 
-        # GET /api/users/ и GET /api/users/{id}/
-        if self.action in ['list', 'retrieve']:
-            return UserReadSerializer
-
         # GET/PUT/PATCH /api/users/me/
         if self.action == 'me':
+            return UserReadSerializer
+
+        # GET /api/users/ и GET /api/users/{id}/
+        if self.action in ['list', 'retrieve']:
             return UserReadSerializer
 
         # PUT/DELETE /api/users/me/avatar/
@@ -129,9 +129,13 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'set_password':
             return ChangePasswordSerializer
 
-        # POST/DELETE /api/users/{id}/subscribe/ и GET /api/users/subscriptions/
-        if self.action in ['subscribe', 'subscriptions']:
-            return SubscriptionSerializer
+        # POST/DELETE /api/users/{id}/subscribe/
+        if self.action == 'subscribe':
+            return SubscriptionDetailSerializer
+
+        # GET /api/users/subscriptions/
+        if self.action == 'subscriptions':
+            return SubscriptionDetailSerializer
 
         # всё остальное — админский сериализатор
         return AdminUserSerializer
@@ -176,9 +180,12 @@ class UserViewSet(viewsets.ModelViewSet):
     def subscriptions(self, request):
         subs = Subscription.objects.filter(
             user=request.user).values_list('author', flat=True)
-        authors = User.objects.filter(id__in=subs)
-        serializer = self.get_serializer(
-            authors, many=True, context={'request': request})
+        authors = User.objects.filter(id__in=subs).order_by('username')
+        page = self.paginate_queryset(authors)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(authors, many=True)
         return Response(serializer.data)
 
     @action(
