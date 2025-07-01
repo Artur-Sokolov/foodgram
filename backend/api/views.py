@@ -16,7 +16,7 @@ from .permissions import IsAdmin
 from .serializers import (
     SignupSerializer, AdminUserSerializer, MeUserSerializer,
     ChangePasswordSerializer, AvatarSerializer, SubscriptionSerializer,
-    EmailAuthTokenSerializer
+    EmailAuthTokenSerializer, UserReadSerializer
 )
 
 
@@ -58,7 +58,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all()
     serializer_class = AdminUserSerializer
-    lookup_field = 'username'
+    lookup_field = 'id'
     filter_backends = [filters.SearchFilter]
     search_fields = ['username']
     pagination_class = UsersPagination
@@ -69,13 +69,15 @@ class UserViewSet(viewsets.ModelViewSet):
     ]
 
     def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
         if self.action == 'create':
             return [AllowAny()]
         if self.action in [
-            'me', 'set_password', 'avatar', 'subscribe', 'subscriptions'
+            'me', 'set_password', 'me_avatar', 'subscribe', 'subscriptions'
         ]:
             return [IsAuthenticated()]
-        return super().get_permissions()
+        return [IsAdmin()]
 
     @action(
         detail=False,
@@ -107,21 +109,38 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_serializer_class(self):
-        mapping = {
-            'create': SignupSerializer,
-            'me': MeUserSerializer,
-            'set_password': ChangePasswordSerializer,
-            'avatar': AvatarSerializer,
-            'subscribe': SubscriptionSerializer,
-            'subscriptions': SubscriptionSerializer,
-        }
-        return mapping.get(self.action, AdminUserSerializer)
+        # POST /api/users/ — регистрация
+        if self.action == 'create':
+            return SignupSerializer
+
+        # GET /api/users/ и GET /api/users/{id}/
+        if self.action in ['list', 'retrieve']:
+            return UserReadSerializer
+
+        # GET/PUT/PATCH /api/users/me/
+        if self.action == 'me':
+            return UserReadSerializer
+
+        # PUT/DELETE /api/users/me/avatar/
+        if self.action == 'me_avatar':
+            return AvatarSerializer
+
+        # POST /api/users/set_password/
+        if self.action == 'set_password':
+            return ChangePasswordSerializer
+
+        # POST/DELETE /api/users/{id}/subscribe/ и GET /api/users/subscriptions/
+        if self.action in ['subscribe', 'subscriptions']:
+            return SubscriptionSerializer
+
+        # всё остальное — админский сериализатор
+        return AdminUserSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        output = AdminUserSerializer(user, context={'request': request})
+        output = UserReadSerializer(user, context={'request': request})
         return Response(output.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['POST'], url_path='set_password')
@@ -136,17 +155,6 @@ class UserViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         user.set_password(serializer.validated_data['new_password'])
         user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=False, methods=['put', 'delete'], url_path='avatar')
-    def avatar(self, request):
-        if request.method == 'PUT':
-            serializer = self.get_serializer(
-                request.user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-        request.user.avatar.delete(save=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post', 'delete'], url_path='subscribe')

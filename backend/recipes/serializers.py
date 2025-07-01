@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from .models import (
     Tag, Ingredient, Recipe, RecipeIngredient, Favorite, ShoppingCart
 )
+from api.serializers import UserReadSerializer
 
 User = get_user_model()
 
@@ -45,19 +46,41 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
-    """Сериализатор для чтения рецептов с вложенными полями."""
+    """Сериализатор для чтения рецептов."""
 
     tags = TagSerializer(many=True, read_only=True)
     ingredients = RecipeIngredientSerializer(
         source='recipe_ingredients', many=True, read_only=True
     )
-    author = serializers.StringRelatedField()
+    author = UserReadSerializer(read_only=True)
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = (
-            'id', 'author', 'name', 'image', 'text',
-            'cooking_time', 'tags', 'ingredients', 'pub_date'
+            'id',
+            'tags',
+            'author',
+            'ingredients',
+            'is_favorited',
+            'is_in_shopping_cart',
+            'name',
+            'image',
+            'text',
+            'cooking_time'
+        )
+
+    def get_is_favorited(self, obj):
+        user = self.context['request'].user
+        return user.is_authenticated and (
+            obj.favorited_by.filter(user=user).exists()
+        )
+
+    def get_is_in_shopping_cart(self, obj):
+        user = self.context['request'].user
+        return user.is_authenticated and (
+            obj.in_shopping_carts.filter(user=user).exists()
         )
 
 
@@ -65,15 +88,16 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания и обновления рецептов."""
 
     tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(), many=True, required=False,
+        queryset=Tag.objects.all(), many=True, required=True,
     )
     ingredients = serializers.ListField(
         child=serializers.DictField(
             child=serializers.IntegerField(),
-            required=False,
-        )
+            required=True,
+        ),
+        required=True,
     )
-    image = serializers.ImageField(required=False)
+    image = serializers.ImageField(required=True)
 
     class Meta:
         model = Recipe

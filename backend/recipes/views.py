@@ -24,7 +24,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = [AllowAny]
-    lookup_field = 'slug'
+    lookup_field = 'id'
     pagination_class = None
 
 
@@ -76,6 +76,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer.save(), context={'request': request})
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
+    def list(self, request, *args, **kwargs):
+        params = request.query_params
+
+        if 'is_in_shopping_cart' in params:
+            return super().list(request, *args, **kwargs)
+
+        if 'is_favorited' in params or 'author' in params:
+            return super().list(request, *args, **kwargs)
+
+        tags = params.getlist('tags')
+        if not tags:
+            return Response({
+                'count': 0,
+                'next': None,
+                'previous': None,
+                'results': []
+            })
+        return super().list(request, *args, **kwargs)
+
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
@@ -121,18 +140,40 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
-        """POST /recipes/{id}/shopping_cart/"""
+        """POST добавить рецепт в список покупок."""
 
         recipe = self.get_object()
-        ShoppingCart.objects.get_or_create(user=request.user, recipe=recipe)
-        return Response(status=status.HTTP_201_CREATED)
+        cart_item, created = ShoppingCart.objects.get_or_create(
+            user=request.user, recipe=recipe
+        )
+        if not created:
+            return Response(
+                {'detail': 'Рецепт уже в списке покупок'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data = {
+            'id': recipe.id,
+            'name': recipe.name,
+            'image': request.build_absolute_uri(recipe.image.url),
+            'cooking_time': recipe.cooking_time
+        }
+        return Response(data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def remove_from_shopping_cart(self, request, pk=None):
-        """DELETE /recipes/{id}/shopping_cart/"""
+        """DELETE рецепт из списка покупок."""
 
         recipe = self.get_object()
-        ShoppingCart.objects.filter(user=request.user, recipe=recipe).delete()
+        cart_item = ShoppingCart.objects.filter(
+            user=request.user, recipe=recipe
+        )
+        if not cart_item.exists():
+            return Response(
+                {'detail': 'Рецепта нет в списке покупок'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        cart_item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
@@ -162,4 +203,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
             kwargs={'pk': pk},
             request=request
         )
-        return Response({'link': url})
+        return Response({'short-link': url})

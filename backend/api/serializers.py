@@ -117,3 +117,25 @@ class EmailAuthTokenSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+
+class UserReadSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'email', 'username', 'first_name', 'last_name',
+            'is_subscribed','avatar'
+        )
+
+    def get_is_subscribed(self, obj):
+        """True, если текущий аутентифицированный user подписан на obj."""
+
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return Subscription.objects.filter(
+            user=request.user,
+            author=obj
+        ).exists()

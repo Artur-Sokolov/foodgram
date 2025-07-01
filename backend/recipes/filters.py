@@ -14,21 +14,20 @@ class RecipeFilter(filters.FilterSet):
         model = Recipe
         fields = ['tags', 'author', 'is_favorited', 'is_in_shopping_cart']
 
-    def filter_tags(self, queryset, name, value):
-        # getlist вернёт все ?tags=…&tags=…
+    def filter_tags(self, queryset, name, slugs):
         slugs = self.request.query_params.getlist('tags')
         if not slugs:
-            return queryset
+            return queryset.none()
         return queryset.filter(tags__slug__in=slugs).distinct()
 
-    def filter_favorited(self, queryset, name, value):
+    def filter_favorited(self, queryset, name, favorite):
         user = self.request.user
-        if value and user.is_authenticated:
+        if favorite and user.is_authenticated:
             return queryset.filter(favorited_by__user=user)
         return queryset
 
-    def filter_shopping_cart(self, queryset, name, value):
+    def filter_shopping_cart(self, queryset, name, cart):
         user = self.request.user
-        if value and user.is_authenticated:
+        if cart and user.is_authenticated:
             return queryset.filter(in_shopping_carts__user=user)
         return queryset
