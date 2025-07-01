@@ -3,7 +3,9 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
 
 from .models import (User, Subscription)
-from recipes.models import (Tag, Ingredient, Recipe, Favorite, ShoppingCart)
+from recipes.models import (
+    Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeIngredient
+)
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -86,3 +88,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'user', 'author')
     search_fields = ('user__username', 'author__username')
+
+
+@admin.register(RecipeIngredient)
+class RecipeIngredientAdmin(admin.ModelAdmin):
+    list_display = ('id', 'recipe', 'ingredient', 'amount')
+    search_fields = ('recipe__name', 'ingredient__name')
