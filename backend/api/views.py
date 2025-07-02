@@ -12,13 +12,20 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .constants import USER_ME_URL_SEGMENT, USERS_PAGINATION_PAGE_SIZE
+from .constants import USERS_PAGINATION_PAGE_SIZE
 from .models import Subscription, User
 from .permissions import IsAdmin
-from .serializers import (AdminUserSerializer, AvatarSerializer,
-                          ChangePasswordSerializer, EmailAuthTokenSerializer,
-                          MeUserSerializer, SignupSerializer,
-                          SubscriptionDetailSerializer, UserReadSerializer)
+from .serializers import (
+    AdminUserSerializer,
+    AvatarSerializer,
+    ChangePasswordSerializer,
+    EmailAuthTokenSerializer,
+    MeUserSerializer,
+    SignupSerializer,
+    SubscriptionDetailSerializer,
+    UserReadSerializer,
+)
+from foodgram_backend.settings import USER_ME_URL_SEGMENT
 
 User = get_user_model()
 
@@ -31,8 +38,7 @@ class CustomAuthToken(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(
-            data=request.data,
-            context={'request': request}
+            data=request.data, context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
@@ -74,7 +80,11 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return [AllowAny()]
         if self.action in [
-            'me', 'set_password', 'me_avatar', 'subscribe', 'subscriptions'
+            'me',
+            'set_password',
+            'me_avatar',
+            'subscribe',
+            'subscriptions',
         ]:
             return [IsAuthenticated()]
         return [IsAdmin()]
@@ -84,7 +94,7 @@ class UserViewSet(viewsets.ModelViewSet):
         methods=['get', 'patch'],
         permission_classes=[IsAuthenticated],
         url_path=USER_ME_URL_SEGMENT,
-        serializer_class=MeUserSerializer
+        serializer_class=MeUserSerializer,
     )
     def me(self, request):
         user = request.user
@@ -93,13 +103,17 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
         elif request.method == 'PATCH':
-            serializer = self.get_serializer(user, data=request.data, partial=True)
+            serializer = self.get_serializer(
+                user, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
 
         elif request.method == 'PUT':
-            serializer = AvatarSerializer(user, data=request.data, partial=True)
+            serializer = AvatarSerializer(
+                user, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
@@ -155,8 +169,10 @@ class UserViewSet(viewsets.ModelViewSet):
         if not user.check_password(
             serializer.validated_data['current_password']
         ):
-            return Response({'current_password': 'Неверный пароль'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'current_password': 'Неверный пароль'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -167,19 +183,23 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         if request.method == 'POST':
             if user == author:
-                return Response({'detail': 'Нельзя подписаться на себя'},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'detail': 'Нельзя подписаться на себя'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             Subscription.objects.get_or_create(user=user, author=author)
             serializer = self.get_serializer(
-                author, context={'request': request})
+                author, context={'request': request}
+            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         Subscription.objects.filter(user=user, author=author).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'], url_path='subscriptions')
     def subscriptions(self, request):
-        subs = Subscription.objects.filter(
-            user=request.user).values_list('author', flat=True)
+        subs = Subscription.objects.filter(user=request.user).values_list(
+            'author', flat=True
+        )
         authors = User.objects.filter(id__in=subs).order_by('username')
         page = self.paginate_queryset(authors)
         if page is not None:
@@ -189,7 +209,8 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(
-        detail=False, methods=['put', 'delete'],
+        detail=False,
+        methods=['put', 'delete'],
         url_path='me/avatar',
         permission_classes=[IsAuthenticated],
     )
@@ -201,37 +222,39 @@ class UserViewSet(viewsets.ModelViewSet):
             user.avatar.delete(save=True)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # PUT — пробуем получить avatar из request.data
+        # PUT — пробуем получить avatar
         avatar_data = request.data.get('avatar')
         if not avatar_data:
             return Response(
                 {'avatar': 'Поле avatar обязательно.'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Если строка в формате base64
-        if isinstance(avatar_data, str) and avatar_data.startswith('data:image'):
+        if isinstance(avatar_data, str) and avatar_data.startswith(
+            'data:image'
+        ):
             header, b64 = avatar_data.split(';base64,', 1)
-            ext = header.split('/')[-1]  # e.g. "png" или "jpeg"
+            ext = header.split('/')[-1]
             try:
                 decoded = base64.b64decode(b64)
             except (TypeError, ValueError):
                 return Response(
                     {'avatar': 'Некорректный base64.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             file_name = f'{uuid.uuid4()}.{ext}'
             user.avatar.save(file_name, ContentFile(decoded), save=True)
 
-        # Иначе предполагаем, что это файл multipart/form-data
         else:
             avatar_file = request.FILES.get('avatar')
             if not avatar_file:
                 return Response(
                     {'avatar': 'Неправильный формат avatar.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             user.avatar.save(avatar_file.name, avatar_file, save=True)
 
-        # Отдаём новый URL аватара
-        return Response({'avatar': request.build_absolute_uri(user.avatar.url)})
+        return Response(
+            {'avatar': request.build_absolute_uri(user.avatar.url)}
+        )

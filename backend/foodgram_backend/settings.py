@@ -15,7 +15,9 @@ SECRET_KEY = 'django-insecure-av-zi44%ooy83zn1ql$0zrh%5!ynfm$tqj3*l!$pq+lo25@hk+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['123.123.123.123', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    'localhost', '127.0.0.1', '127.0.0.1:8000',
+    'gateway', 'backend', '123.123.123.123', 'yantaski.zapto.org']
 
 
 # Application definition
@@ -87,7 +89,7 @@ DATABASES = {
         'USER': os.getenv('POSTGRES_USER', 'django'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', 'foodgram'),
-        'PORT': os.getenv('DB_PORT', 5432)
+        'PORT': os.getenv('DB_PORT', 5432),
     }
 }
 

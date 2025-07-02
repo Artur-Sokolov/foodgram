@@ -29,7 +29,7 @@ services:
       - static:/frontend_static
 
   gateway:
-    build: ./gateway
+    build: ./gateway/
     restart: always
     env_file: .env
     depends_on:

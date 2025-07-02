@@ -3,9 +3,6 @@ import re
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
-#from datetime import date
-
-
 
 def validate_username(username):
     """Проверка валидности имени пользователя."""
@@ -16,7 +13,5 @@ def validate_username(username):
             f'Имя пользователя содержит недопустимые символы: {chars}'
         )
     if username == settings.USER_ME_URL_SEGMENT:
-        raise ValidationError(
-            f'Имя пользователя "{username}" запрещено.'
-        )
+        raise ValidationError(f'Имя пользователя "{username}" запрещено.')
     return username

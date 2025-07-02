@@ -13,7 +13,7 @@ class IsAdmin(permissions.BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return (user.is_authenticated and user.is_admin)
+        return user.is_authenticated and user.is_admin
 
 
 class IsAdminOrModerator(IsAdmin):
@@ -29,7 +29,5 @@ class IsAdminOrReadOnly(IsAdmin):
     message = 'Создавать и изменять записи может только администратор.'
 
     def has_permission(self, request, view):
-        return (
-            request.method in permissions.SAFE_METHODS
-            or super().has_permission(request, view)
-        )
+        return request.method in permissions.SAFE_METHODS or (
+            super().has_permission(request, view))

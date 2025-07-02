@@ -15,7 +15,9 @@ class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'username', 'password', 'first_name', 'last_name')
+            'id', 'email', 'username', 'password',
+            'first_name', 'last_name'
+        )
 
     def create(self, validated_data):
         """Создание пользователя."""
@@ -24,7 +26,7 @@ class SignupSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             first_name=validated_data['first_name'],
-            last_name=validated_data['last_name']
+            last_name=validated_data['last_name'],
         )
         return user
 
@@ -35,7 +37,8 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'username', 'email', 'first_name', 'last_name', 'role', 'avatar'
+            'username', 'email', 'first_name',
+            'last_name', 'role', 'avatar'
         )
 
 
@@ -69,7 +72,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         source='author.recipes.count', read_only=True
     )
 
-
     class Meta:
         model = Subscription
         fields = ('id', 'user', 'author', 'is_subscribed', 'recipes_count')
@@ -89,8 +91,8 @@ class SubscriptionDetailSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(read_only=True)
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.IntegerField(
-        source='recipes.count', read_only=True)
+    recipes_count = serializers.IntegerField(source='recipes.count',
+                                             read_only=True)
 
     class Meta:
         model = User
@@ -109,23 +111,22 @@ class SubscriptionDetailSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, author):
         request = self.context['request']
         return Subscription.objects.filter(
-            user=request.user, author=author
-        ).exists()
+            user=request.user, author=author).exists()
 
     def get_recipes(self, author):
         from recipes.serializers import RecipeMinifiedSerializer
 
         request = self.context['request']
         limit = request.query_params.get('recipes_limit')
-        qs = author.recipes.all().order_by('-pub_date')
+        recipe = author.recipes.all().order_by('-pub_date')
         try:
             limit = int(limit) if limit is not None else None
         except ValueError:
             limit = None
         if limit:
-            qs = qs[:limit]
-        return RecipeMinifiedSerializer(
-            qs, many=True, context=self.context).data
+            recipe = recipe[:limit]
+        return RecipeMinifiedSerializer(recipe,
+                                        many=True, context=self.context).data
 
 
 class EmailAuthTokenSerializer(serializers.Serializer):
@@ -159,8 +160,7 @@ class EmailAuthTokenSerializer(serializers.Serializer):
         )
         if not user:
             raise serializers.ValidationError(
-                _('Неверный e-mail или пароль.'),
-                code='authorization'
+                _('Неверный e-mail или пароль.'), code='authorization'
             )
 
         attrs['user'] = user
@@ -173,8 +173,13 @@ class UserReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'username', 'first_name', 'last_name',
-            'is_subscribed','avatar'
+            'id',
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'avatar',
         )
 
     def get_is_subscribed(self, obj):
@@ -184,6 +189,4 @@ class UserReadSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return False
         return Subscription.objects.filter(
-            user=request.user,
-            author=obj
-        ).exists()
+            user=request.user, author=obj).exists()

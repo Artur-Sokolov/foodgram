@@ -14,9 +14,13 @@ from .filters import RecipeFilter
 from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .pagination import RecipePagination
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (DownloadShoppingCartSerializer, IngredientSerializer,
-                          RecipeCreateSerializer, RecipeReadSerializer,
-                          TagSerializer)
+from .serializers import (
+    DownloadShoppingCartSerializer,
+    IngredientSerializer,
+    RecipeCreateSerializer,
+    RecipeReadSerializer,
+    TagSerializer,
+)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -43,10 +47,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all().prefetch_related('tags', 'ingredients')
-    permission_classes = [
-        permissions.IsAuthenticatedOrReadOnly,
-        IsAuthorOrReadOnly
-    ]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          IsAuthorOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = RecipeFilter
 
@@ -67,14 +69,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
             try:
                 decoded = base64.b64decode(b64)
             except (TypeError, ValueError):
-                return Response({'image': 'Некорректный base64.'},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'image': 'Некорректный base64.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             fname = f'{uuid.uuid4()}.{ext}'
             data['image'] = ContentFile(decoded, name=fname)
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         read_serializer = RecipeReadSerializer(
-            serializer.save(), context={'request': request})
+            serializer.save(), context={'request': request}
+        )
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
@@ -88,12 +93,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         tags = params.getlist('tags')
         if not tags:
-            return Response({
-                'count': 0,
-                'next': None,
-                'previous': None,
-                'results': []
-            })
+            return Response(
+                {'count': 0, 'next': None, 'previous': None, 'results': []}
+            )
         return super().list(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
@@ -110,7 +112,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             except (TypeError, ValueError):
                 return Response(
                     {'image': 'Некорректный base64.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             data['image'] = ContentFile(decoded, name=f'{uuid.uuid4()}.{ext}')
 
@@ -123,13 +125,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         read = RecipeReadSerializer(recipe, context={'request': request})
         return Response(read.data)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True, methods=['post'], permission_classes=[IsAuthenticated]
+    )
     def favorite(self, request, pk=None):
         """POST добавить рецепт в избранное."""
         recipe = self.get_object()
-        fav, created = Favorite.objects.get_or_create(
-            user=request.user,
-            recipe=recipe
+        favorite, created = Favorite.objects.get_or_create(
+            user=request.user, recipe=recipe
         )
         if not created:
             return Response(
@@ -140,27 +143,27 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'id': recipe.id,
             'name': recipe.name,
             'image': request.build_absolute_uri(recipe.image.url),
-            'cooking_time': recipe.cooking_time
+            'cooking_time': recipe.cooking_time,
         }
         return Response(data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def unfavorite(self, request, pk=None):
         """DELETE удалить рецепт из избранного."""
-        
+
         recipe = self.get_object()
         deleted, _ = Favorite.objects.filter(
-            user=request.user,
-            recipe=recipe
-        ).delete()
+            user=request.user, recipe=recipe).delete()
         if deleted == 0:
             return Response(
                 {'detail': 'Рецепта нет в избранном'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True, methods=['post'], permission_classes=[IsAuthenticated]
+    )
     def shopping_cart(self, request, pk=None):
         """POST добавить рецепт в список покупок."""
 
@@ -171,14 +174,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not created:
             return Response(
                 {'detail': 'Рецепт уже в списке покупок'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         data = {
             'id': recipe.id,
             'name': recipe.name,
             'image': request.build_absolute_uri(recipe.image.url),
-            'cooking_time': recipe.cooking_time
+            'cooking_time': recipe.cooking_time,
         }
         return Response(data, status=status.HTTP_201_CREATED)
 
@@ -193,24 +196,27 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not cart_item.exists():
             return Response(
                 {'detail': 'Рецепта нет в списке покупок'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         cart_item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False, methods=['get'], permission_classes=[IsAuthenticated]
+    )
     def download_shopping_cart(self, request):
         """GET /recipes/download_shopping_cart/ — скачивание списка покупок."""
 
         serializer = DownloadShoppingCartSerializer(request.user)
         data = serializer.data['ingredients']
         lines = [
-            f"{item['name']} ({item['unit']}) — {item['amount']}"
+            f"({item['name']} ({item['unit']}) — {item['amount']})"
             for item in data
         ]
-        content = "\n".join(lines)
+        content = '\n'.join(lines)
         response = HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_list.txt"')
         return response
 
     @action(
@@ -220,9 +226,5 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[AllowAny]
     )
     def get_link(self, request, pk=None):
-        url = reverse(
-            'recipes-detail',
-            kwargs={'pk': pk},
-            request=request
-        )
+        url = reverse('recipes-detail', kwargs={'pk': pk}, request=request)
         return Response({'short-link': url})

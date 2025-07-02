@@ -4,8 +4,8 @@ from rest_framework import serializers
 
 from api.serializers import UserReadSerializer
 
-from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                     ShoppingCart, Tag)
+from .models import (Favorite, Ingredient,
+                     Recipe, RecipeIngredient, ShoppingCart, Tag)
 
 User = get_user_model()
 
@@ -30,14 +30,11 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
     """Сериалайзер для ингредиента внутри рецепта"""
 
     id = serializers.PrimaryKeyRelatedField(
-        source='ingredient',
-        queryset=Ingredient.objects.all(),
-        write_only=True
+        source='ingredient', queryset=Ingredient.objects.all(), write_only=True
     )
     name = serializers.CharField(source='ingredient.name', read_only=True)
     measurement_unit = serializers.CharField(
-        source='ingredient.measurement_unit',
-        read_only=True
+        source='ingredient.measurement_unit', read_only=True
     )
 
     class Meta:
@@ -68,7 +65,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'name',
             'image',
             'text',
-            'cooking_time'
+            'cooking_time',
         )
 
     def get_is_favorited(self, obj):
@@ -88,7 +85,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания и обновления рецептов."""
 
     tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(), many=True, required=True,
+        queryset=Tag.objects.all(),
+        many=True,
+        required=True,
     )
     ingredients = serializers.ListField(
         child=serializers.DictField(
@@ -102,33 +101,31 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'name', 'text', 'cooking_time',
-            'tags', 'ingredients', 'image'
+            'id', 'name', 'text', 'cooking_time', 'tags', 'ingredients', 'image'
         )
 
-    def validate_ingredients(self, value):
-        if not value:
+    def validate_ingredients(self, ingredients):
+        if not ingredients:
             raise serializers.ValidationError(
                 'Список ингредиентов не может быть пустым'
             )
-        ids = [item.get('id') for item in value]
-        if len(ids) != len(set(ids)):
+        ingredient = [item.get('id') for item in ingredients]
+        if len(ingredient) != len(set(ingredient)):
             raise serializers.ValidationError(
                 'Ингредиенты не должны дублироваться'
             )
-        return value
+        return ingredients
 
     def create(self, validated_data):
         tags = validated_data.pop('tags')
         ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(
-            **validated_data, author=self.context['request'].user)
+            **validated_data, author=self.context['request'].user
+        )
         recipe.tags.set(tags)
         for ing in ingredients_data:
             RecipeIngredient.objects.create(
-                recipe=recipe,
-                ingredient_id=ing['id'],
-                amount=ing['amount']
+                recipe=recipe, ingredient_id=ing['id'], amount=ing['amount']
             )
         return recipe
 
@@ -144,7 +141,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 RecipeIngredient.objects.create(
                     recipe=instance,
                     ingredient_id=ingredients['id'],
-                    amount=ingredients['amount']
+                    amount=ingredients['amount'],
                 )
         return super().update(instance, validated_data)
 
@@ -171,11 +168,13 @@ class DownloadShoppingCartSerializer(serializers.Serializer):
     ingredients = serializers.SerializerMethodField()
 
     def get_ingredients(self, obj):
-        qs = RecipeIngredient.objects.filter(
-            recipe__in=obj.shopping_cart.values_list('recipe', flat=True)
-        ).values(
-            'ingredient__name', 'ingredient__measurement_unit'
-        ).annotate(amount=Sum('amount'))
+        qs = (
+            RecipeIngredient.objects.filter(
+                recipe__in=obj.shopping_cart.values_list('recipe', flat=True)
+            )
+            .values('ingredient__name', 'ingredient__measurement_unit')
+            .annotate(amount=Sum('amount'))
+        )
         return [
             {
                 'name': item['ingredient__name'],
