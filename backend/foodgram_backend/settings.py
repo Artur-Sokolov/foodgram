@@ -1,6 +1,9 @@
 import os
 import string
+from dotenv import load_dotenv
 from pathlib import Path
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -10,21 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-av-zi44%ooy83zn1ql$0zrh%5!ynfm$tqj3*l!$pq+lo25@hk+'
+SECRET_KEY = os.getenv('SECRET_KEY', 'insecure-default')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://yantaski.zapto.org',
-    'https://yantaski.zapto.org',
-    'http://localhost',
-    'http://127.0.0.1',
-]
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost,http://127.0.0.1').split(',')
 
-ALLOWED_HOSTS = [
-    'localhost', '127.0.0.1', '127.0.0.1:8000',
-    'gateway', 'backend', '123.123.123.123', 'yantaski.zapto.org']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition

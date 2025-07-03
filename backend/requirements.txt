@@ -27,3 +27,4 @@ urllib3==2.4.0
 psycopg2-binary==2.9.3
 django-cors-headers==3.13.0
 Pillow>=8.0.0
+dotenv==0.9.9
