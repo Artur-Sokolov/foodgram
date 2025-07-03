@@ -8,6 +8,7 @@ def api_client():
     """REST API client fixture."""
     return APIClient()
 
+
 @pytest.mark.django_db
 def test_api_root_accessibility(api_client):
     """Проверяем, что корневой API-эндпоинт доступен."""
