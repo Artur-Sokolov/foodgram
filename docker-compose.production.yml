@@ -1,9 +1,9 @@
-version: '3'
+version: '3.9'
 
 volumes:
-  pg_data_production:
-  static_volume:
-  media_volume:
+  pg_data:
+  static:
+  media:
 
 services:
   foodgram:
@@ -11,22 +11,22 @@ services:
     restart: always
     env_file: .env
     volumes:
-      - pg_data_production:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
 
   backend:
     image: arthursokolov/foodgram_backend
     restart: always
     env_file: .env
     volumes:
-      - static_volume:/app/backend_static/
-      - media_volume:/app/backend_media/
+      - static:/app/backend_static/
+      - media:/app/media/
 
   frontend:
     image: arthursokolov/foodgram_frontend
     env_file: .env
     command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static_volume:/frontend_static
+      - static:/frontend_static
 
   gateway:
     image: arthursokolov/foodgram_gateway
@@ -35,5 +35,5 @@ services:
     ports:
       - 8000:80
     volumes:
-      - static_volume:/static/
-      - media_volume:/media/
+      - static:/static/
+      - media:/media/
