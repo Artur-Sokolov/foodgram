@@ -4,8 +4,8 @@ from rest_framework import serializers
 
 from api.serializers import UserReadSerializer
 
-from .models import (Favorite, Ingredient,
-                     Recipe, RecipeIngredient, ShoppingCart, Tag)
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag)
 
 User = get_user_model()
 

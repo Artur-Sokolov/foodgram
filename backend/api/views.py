@@ -12,20 +12,15 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from foodgram_backend.settings import USER_ME_URL_SEGMENT
+
 from .constants import USERS_PAGINATION_PAGE_SIZE
 from .models import Subscription, User
 from .permissions import IsAdmin
-from .serializers import (
-    AdminUserSerializer,
-    AvatarSerializer,
-    ChangePasswordSerializer,
-    EmailAuthTokenSerializer,
-    MeUserSerializer,
-    SignupSerializer,
-    SubscriptionDetailSerializer,
-    UserReadSerializer,
-)
-from foodgram_backend.settings import USER_ME_URL_SEGMENT
+from .serializers import (AdminUserSerializer, AvatarSerializer,
+                          ChangePasswordSerializer, EmailAuthTokenSerializer,
+                          MeUserSerializer, SignupSerializer,
+                          SubscriptionDetailSerializer, UserReadSerializer)
 
 User = get_user_model()
 
