@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
-
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Tag)
+                            ShoppingCart, Tag
+)
 
 from .models import Subscription, User
 
