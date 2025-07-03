@@ -22,8 +22,6 @@ from .serializers import (AdminUserSerializer, AvatarSerializer,
                           MeUserSerializer, SignupSerializer,
                           SubscriptionDetailSerializer, UserReadSerializer)
 
-User = get_user_model()
-
 
 class CustomAuthToken(ObtainAuthToken):
     """Вход по email/паролю, возвращает токен."""
