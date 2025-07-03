@@ -1,7 +1,6 @@
 import base64
 import uuid
 
-from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from rest_framework import filters, status, viewsets
 from rest_framework.authtoken.models import Token
