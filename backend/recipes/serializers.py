@@ -1,13 +1,32 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Sum
 from rest_framework import serializers
 
 from api.serializers import UserReadSerializer
+from api.constants import (
+    MIN_COOKING_TIME, MAX_COOKING_TIME,
+    MIN_INGREDIENT_AMOUNT, MAX_INGREDIENT_AMOUNT
+)
 
 from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                      ShoppingCart, Tag)
 
 User = get_user_model()
+
+
+class IngredientCreateSerializer(serializers.Serializer):
+    """Сериализатор для отдельного ингредиента."""
+
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all()
+    )
+    amount = serializers.IntegerField(
+        validators=[
+            MinValueValidator(MIN_INGREDIENT_AMOUNT),
+            MaxValueValidator(MAX_INGREDIENT_AMOUNT),
+        ]
+    )
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -89,13 +108,18 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         many=True,
         required=True,
     )
-    ingredients = serializers.ListField(
-        child=serializers.DictField(
-            child=serializers.IntegerField(),
-            required=True,
-        ),
+    ingredients = serializers.ListSerializer(
+        child=IngredientCreateSerializer(),
         required=True,
     )
+
+    cooking_time = serializers.IntegerField(
+        validators=[
+            MinValueValidator(MIN_COOKING_TIME),
+            MaxValueValidator(MAX_COOKING_TIME),
+        ]
+    )
+
     image = serializers.ImageField(required=True)
 
     class Meta:
@@ -117,6 +141,19 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         return ingredients
 
+    def _create_ingredients(self, recipe, ingredients_data):
+        objs = [
+            RecipeIngredient(
+                recipe=recipe,
+                ingredient_id=(
+                    item['id'].id if hasattr(item['id'],
+                                             'id') else item['id']
+                ),
+                amount=item['amount']
+            ) for item in ingredients_data
+        ]
+        RecipeIngredient.objects.bulk_create(objs)
+
     def create(self, validated_data):
         tags = validated_data.pop('tags')
         ingredients_data = validated_data.pop('ingredients')
@@ -124,10 +161,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             **validated_data, author=self.context['request'].user
         )
         recipe.tags.set(tags)
-        for ing in ingredients_data:
-            RecipeIngredient.objects.create(
-                recipe=recipe, ingredient_id=ing['id'], amount=ing['amount']
-            )
+        self._create_ingredients(recipe, ingredients_data)
         return recipe
 
     def update(self, instance, validated_data):
@@ -137,13 +171,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
         if 'ingredients' in validated_data:
             ingredients_data = validated_data.pop('ingredients')
-            RecipeIngredient.objects.filter(recipe=instance).delete()
-            for ingredients in ingredients_data:
-                RecipeIngredient.objects.create(
-                    recipe=instance,
-                    ingredient_id=ingredients['id'],
-                    amount=ingredients['amount'],
-                )
+            instance.recipe_ingredients.all().delete()
+            self._create_ingredients(instance, ingredients_data)
         return super().update(instance, validated_data)
 
 

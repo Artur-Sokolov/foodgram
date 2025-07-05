@@ -179,20 +179,19 @@ class UserViewSet(viewsets.ModelViewSet):
                     {'detail': 'Нельзя подписаться на себя'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            Subscription.objects.get_or_create(user=user, author=author)
+            user.follower.get_or_create(author=author)
             serializer = self.get_serializer(
                 author, context={'request': request}
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        Subscription.objects.filter(user=user, author=author).delete()
+        user.follower.filter(author=author).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'], url_path='subscriptions')
     def subscriptions(self, request):
-        subs = Subscription.objects.filter(user=request.user).values_list(
-            'author', flat=True
-        )
-        authors = User.objects.filter(id__in=subs).order_by('username')
+        user = request.user
+        author_ids = user.follower.values_list('author', flat=True)
+        authors = User.objects.filter(id__in=author_ids).order_by('username')
         page = self.paginate_queryset(authors)
         if page is not None:
             serializer = self.get_serializer(page, many=True)

@@ -109,9 +109,10 @@ class SubscriptionDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, author):
-        request = self.context['request']
-        return Subscription.objects.filter(
-            user=request.user, author=author).exists()
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False
+        return author.followering.filter(user=user).exists()
 
     def get_recipes(self, author):
         from recipes.serializers import RecipeMinifiedSerializer
@@ -186,7 +187,7 @@ class UserReadSerializer(serializers.ModelSerializer):
         """True, если текущий аутентифицированный user подписан на obj."""
 
         request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
             return False
-        return Subscription.objects.filter(
-            user=request.user, author=obj).exists()
+        return user.follower.filter(author=obj).exists()

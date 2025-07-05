@@ -1,7 +1,10 @@
 from django.conf import settings
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
-from api.constants import MAX_LENGTH_NAME, MAX_LENGTH_SLUG
+from api.constants import (MAX_LENGTH_NAME, MAX_LENGTH_SLUG, MIN_COOKING_TIME,
+                           MAX_COOKING_TIME, MIN_INGREDIENT_AMOUNT,
+                           MAX_INGREDIENT_AMOUNT)
 
 User = settings.AUTH_USER_MODEL
 
@@ -62,8 +65,12 @@ class Recipe(models.Model):
         upload_to='recipes/', verbose_name='Фото рецепта'
     )
     text = models.TextField(verbose_name='Описание приготовления')
-    cooking_time = models.PositiveBigIntegerField(
-        verbose_name='Время приготовления (минуты)'
+    cooking_time = models.PositiveSmallIntegerField(
+        verbose_name='Время приготовления (минуты)',
+        validators=[
+            MinValueValidator(MIN_COOKING_TIME),
+            MaxValueValidator(MAX_COOKING_TIME),
+        ],
     )
     tags = models.ManyToManyField(
         Tag, related_name='recipes', verbose_name='Теги'
@@ -98,12 +105,19 @@ class RecipeIngredient(models.Model):
     ingredient = models.ForeignKey(
         Ingredient, on_delete=models.CASCADE, related_name='ingredient_recipes'
     )
-    amount = models.PositiveIntegerField(verbose_name='Количество')
+    amount = models.PositiveSmallIntegerField(
+        verbose_name='Количество',
+        validators=[
+            MinValueValidator(MIN_INGREDIENT_AMOUNT),
+            MaxValueValidator(MAX_INGREDIENT_AMOUNT),
+        ],
+    )
 
     class Meta:
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецепте'
         unique_together = ('recipe', 'ingredient')
+        ordering = ['recipe_name', 'ingredient_name']
 
     def __str__(self):
         return f'{self.amount} x {self.ingredient.name} in {self.recipe.name}'
@@ -123,6 +137,10 @@ class Favorite(models.Model):
         unique_together = ('user', 'recipe')
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
+        ordering = ['user']
+
+    def __str__(self):
+        return f'{self.user} {self.recipe}'
 
 
 class ShoppingCart(models.Model):
@@ -139,3 +157,7 @@ class ShoppingCart(models.Model):
         unique_together = ('user', 'recipe')
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
+        ordering = ['user']
+
+    def __str__(self):
+        return f'{self.user} {self.recipe}'

@@ -15,8 +15,8 @@ from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .pagination import RecipePagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (DownloadShoppingCartSerializer, IngredientSerializer,
-                          RecipeCreateSerializer, RecipeReadSerializer,
-                          TagSerializer)
+                          RecipeCreateSerializer, RecipeMinifiedSerializer,
+                          RecipeReadSerializer, TagSerializer)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -135,21 +135,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 {'detail': 'Рецепт уже в избранном'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        data = {
-            'id': recipe.id,
-            'name': recipe.name,
-            'image': request.build_absolute_uri(recipe.image.url),
-            'cooking_time': recipe.cooking_time,
-        }
-        return Response(data, status=status.HTTP_201_CREATED)
+        serializer = RecipeMinifiedSerializer(
+            recipe, context={'request': request}
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def unfavorite(self, request, pk=None):
         """DELETE удалить рецепт из избранного."""
 
         recipe = self.get_object()
-        deleted, _ = Favorite.objects.filter(
-            user=request.user, recipe=recipe).delete()
+        deleted, _ = request.user.favorites.filter(recipe=recipe).delete()
         if deleted == 0:
             return Response(
                 {'detail': 'Рецепта нет в избранном'},
@@ -173,28 +169,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        data = {
-            'id': recipe.id,
-            'name': recipe.name,
-            'image': request.build_absolute_uri(recipe.image.url),
-            'cooking_time': recipe.cooking_time,
-        }
-        return Response(data, status=status.HTTP_201_CREATED)
+        serializer = RecipeMinifiedSerializer(
+            recipe, context={'request': request}
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def remove_from_shopping_cart(self, request, pk=None):
         """DELETE рецепт из списка покупок."""
 
         recipe = self.get_object()
-        cart_item = ShoppingCart.objects.filter(
-            user=request.user, recipe=recipe
-        )
-        if not cart_item.exists():
+        deleted, _ = request.user.shopping_cart.filter(recipe=recipe).delete()
+        if deleted == 0:
             return Response(
                 {'detail': 'Рецепта нет в списке покупок'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        cart_item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
