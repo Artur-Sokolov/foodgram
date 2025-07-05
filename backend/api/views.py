@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from foodgram_backend.settings import USER_ME_URL_SEGMENT
 
 from .constants import USERS_PAGINATION_PAGE_SIZE
-from .models import Subscription, User
+from .models import User
 from .permissions import IsAdmin
 from .serializers import (AdminUserSerializer, AvatarSerializer,
                           ChangePasswordSerializer, EmailAuthTokenSerializer,
