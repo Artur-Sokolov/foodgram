@@ -16,7 +16,7 @@ User = get_user_model()
 
 
 class IngredientCreateSerializer(serializers.Serializer):
-    """Сериализатор для отдельного ингредиента."""
+    """ Сериализатор для отдельного ингредиента."""
 
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects.all()
