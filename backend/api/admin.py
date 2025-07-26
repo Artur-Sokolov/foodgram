@@ -124,5 +124,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(RecipeIngredient)
 class RecipeIngredientAdmin(admin.ModelAdmin):
+    """Recipe Ingraadient."""
+
     list_display = ('id', 'recipe', 'ingredient', 'amount')
     search_fields = ('recipe__name', 'ingredient__name')
