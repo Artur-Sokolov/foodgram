@@ -116,7 +116,7 @@ class ShoppingCartAdmin(admin.ModelAdmin):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    """Админка для модели Subscription."""
+    """Админка для модели Subscription ."""
 
     list_display = ('id', 'user', 'author')
     search_fields = ('user__username', 'author__username')
