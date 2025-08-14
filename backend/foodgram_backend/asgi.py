@@ -3,8 +3,7 @@ ASGI config for foodgram_backend project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
-Formore information on this file, see
-https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
+Formoreinformation on this file, see
 """
 
 import os
