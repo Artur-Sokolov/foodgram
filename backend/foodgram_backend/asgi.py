@@ -1,7 +1,7 @@
 """
 ASGI config for foodgram_backend project.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
+It exposes the ASGI callable as a module-level viable named ``application``.
 
 Formoreinformation on this file, see
 """
